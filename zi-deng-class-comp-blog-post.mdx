@@ -1,0 +1,116 @@
+---
+title: "Review Detection and Sentiment Classification with a TF-IDF Linear SVM and DistilBERT Transformer Hybrid"
+slug: "/zkdeng-uofa/class-competition"
+author: "zkdeng-uofa"
+date: "2026-05-06"
+description: "A hybrid TF-IDF LinearSVC and DistilBERT approach for the LING 539 Kaggle competition"
+tags: ["class competition"]
+---
+
+## Task Summary
+
+The class competition was a three-way text classification task. For each text document, the model had to predict one of three labels:
+
+- `0`: not a movie or TV review
+- `1`: positive movie or TV review
+- `2`: negative movie or TV review
+
+This is a little more complicated than ordinary sentiment analysis because the model first has to decide whether a document is a review at all. Kaggle used macro F1, so I focused on keeping performance balanced across all three labels instead of only doing well on the largest class.
+
+## Exploratory Data Analysis
+
+The training set contained 70,317 labeled examples and the test set contained 17,580 examples. The label distribution was not perfectly balanced:
+
+| label | meaning | count |
+| --- | --- | ---: |
+| 0 | not a review | 32,289 |
+| 1 | positive review | 19,139 |
+| 2 | negative review | 18,889 |
+
+Class `0` was the largest group, while positive and negative reviews were close in size. Text length also varied a lot. The median training document had 104 words, but the 90th percentile had 347 words and the 95th percentile had 483 words. This mattered for the transformer model because very long documents had to be shortened before tokenization.
+
+## Approach
+
+I started with course-covered classifiers using TF-IDF features. I compared logistic regression, linear SVM, a word-plus-character linear SVM, and Complement Naive Bayes with stratified cross-validation. The best classical model used both word n-grams and character n-grams with `LinearSVC`.
+
+For the final submission, I used a hybrid model combining a classical approach and a deep neural network. As someone pretty engrained in the computer vision field, it is most common for general application tasks to utilize a foundation model as the backbone architecture and then fine-tune it with our custom dataset. That is the approach I wanted to apply to the course project whilst still integrating elements of classical classifiers. I commonly use ViTs (Vision Transformers) with HuggingFace, so I was familiar with the Transformer architecture and integration with the transformers package.
+
+The first component was the TF-IDF `LinearSVC`, which captured sparse lexical patterns and gave a strong classical baseline. The second component was `distilbert-base-uncased-finetuned-sst-2-english`, fine-tuned on the competition labels. I used a stratified 90/10 validation split, reduced very long texts by keeping the beginning and ending words, and selected the final blend using validation macro F1.
+
+The final prediction was a blend of DistilBERT logits and SVM decision scores. The selected blend used:
+
+- DistilBERT weight: `0.45`
+- TF-IDF SVM weight: `0.55`
+- DistilBERT temperature: `2.0`
+- SVM temperature: `0.75`
+- class bias: `[-0.2, 0.0, 0.2]`
+
+We chose the blend weights, temperatures, and class bias by grid-searching them on a held-out stratified validation split and selecting the combination with the highest macro F1. The course-covered method in my final model is the linear SVM. DistilBERT was used as an additional pretrained model to improve the sentiment part of the task.
+
+## Results
+
+On the local validation split, the hybrid model improved over both individual components:
+
+| model | validation macro F1 |
+| --- | ---: |
+| TF-IDF LinearSVC | 0.9252 |
+| DistilBERT | 0.9324 |
+| Hybrid blend | 0.9468 |
+
+The validation class F1 scores for the final blend were:
+
+| label | meaning | F1 |
+| --- | --- | ---: |
+| 0 | not a review | 0.9873 |
+| 1 | positive review | 0.9212 |
+| 2 | negative review | 0.9318 |
+
+My Kaggle submission was named `advanced DistilBERT TF-IDF LinearSVC blend` and received public score **0.94900**.
+
+## Error Analysis
+
+The validation confusion matrix was:
+
+| true label | pred 0 | pred 1 | pred 2 |
+| --- | ---: | ---: | ---: |
+| 0 | 3196 | 22 | 11 |
+| 1 | 39 | 1747 | 128 |
+| 2 | 10 | 110 | 1769 |
+
+The model was strongest on class `0`, which means it usually recognized whether a document was actually a movie or TV review. Most remaining errors were between positive and negative reviews. This makes sense because some reviews contain mixed sentiment, sarcasm, comparisons, or plot description that does not clearly say whether the reviewer liked the movie.
+
+## Reproducibility
+
+The code repository is here:
+
+https://github.com/uazhlt-ms-program/grad-level-term-project-kaggle-competition-zkdeng-uofa-1
+
+To reproduce the final hybrid submission:
+
+```bash
+pixi install
+pixi run download-data
+pixi run train-hybrid-advanced
+pixi run submit
+```
+
+The expected Kaggle data files are:
+
+```text
+data/raw/train.csv
+data/raw/test.csv
+data/raw/sample_submission.csv
+```
+
+The final submission file is:
+
+```text
+advanced_submission.csv
+```
+It is submitted under the Kaggle account for Zi K. Deng.
+
+The final hybrid model was trained locally on an Apple M1 Max MacBook Pro with 10 CPU cores, a 32-core Apple GPU, and 32 GB unified memory, using PyTorch’s MPS backend in a pixi-managed Python environment.
+
+## Future Improvements
+
+The next improvement I would try is a stronger transformer backbone, such as a small DeBERTa or RoBERTa model, if it can still train within a reasonable time. I would also refit the selected setup on all labeled training data after validation and spend more time inspecting the positive-versus-negative errors, since that is where most of the remaining mistakes appear.

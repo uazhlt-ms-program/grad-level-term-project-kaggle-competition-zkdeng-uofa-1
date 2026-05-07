@@ -1,17 +1,118 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/iA_HXS2O)
-# Task
+# LING 539 Class Competition
 
-The task is described at [https://uazhlt-ms-program.github.io/ling-539-competition-2026/assignments/class-competition/](https://uazhlt-ms-program.github.io/ling-539-competition-2026/assignments/class-competition/)
+This repository contains my code for the Spring 2026 LING 539 Kaggle class competition.
 
-The competition is hosted at [https://www.kaggle.com/competitions/ling-539-competition-2026](https://www.kaggle.com/competitions/ling-539-competition-2026)
+The task is a three-way text classification problem:
 
-**To join the competition, you must accept it at the following URL**: [https://www.kaggle.com/t/03c8dd2e91474ec1b64203601079805b](https://www.kaggle.com/t/03c8dd2e91474ec1b64203601079805b)
+- `0`: not a movie or TV review
+- `1`: positive movie or TV review
+- `2`: negative movie or TV review
 
-# Notes
-- This project involves a **performance evaluation** as well as your **graded assessment**. It's important to keep these two things separate in your mind.
-  - The rubric which will be used to assess your submission *for a grade* (ie, not to evaluate the performance of your model) is in the D2L assignment item
-  - You are permitted to propose more than one classification model or approach. However, as described on the assessment rubric, **at least one of your submitted models must use one or more of the classification algorithms covered in this course.** (For more details related to assessment, be sure you understand the details of that rubric)
-  - The performance of your model will be evaluated by Kaggle, and your model's performance will be ranked against other class submissions. The performance of your model is **one**, but not the only, factor by which your model will be assessed for a grade
-- You are encouraged, but not obligated, to use Python
-- You may delete or alter any files in this repository
-- You are free to add dependencies, **however**, ensure that your code can be installed/used on another machine running Linux or MacOS (consider containerizing your project with Docker or an equivalent technology)
+Kaggle evaluates submissions with macro F1, so the model selection code uses macro F1 on local validation data.
+
+## Final Submission
+
+The final submitted method is a hybrid of:
+
+- a word and character n-gram TF-IDF `LinearSVC`
+- a fine-tuned `distilbert-base-uncased-finetuned-sst-2-english`
+- a validation-tuned blend of SVM decision scores and DistilBERT logits
+
+The `LinearSVC` component is the course-covered classification method in the final model. DistilBERT is used as an additional pretrained text model to improve sentiment classification.
+
+Current results:
+
+| model | validation macro F1 |
+| --- | ---: |
+| TF-IDF `LinearSVC` | 0.9252 |
+| DistilBERT | 0.9324 |
+| Hybrid blend | 0.9468 |
+
+Kaggle public score for `advanced_submission.csv`: `0.94900`.
+
+## Setup
+
+Install [pixi](https://pixi.sh/), then run:
+
+```bash
+pixi install
+```
+
+Download the Kaggle data:
+
+```bash
+pixi run download-data
+```
+
+This expects Kaggle credentials at:
+
+```text
+~/.kaggle/kaggle.json
+```
+
+Expected data layout:
+
+```text
+data/raw/train.csv
+data/raw/test.csv
+data/raw/sample_submission.csv
+```
+
+## Training
+
+Run the final hybrid method:
+
+```bash
+pixi run train-hybrid-advanced
+```
+
+The command writes:
+
+```text
+reports/advanced_metrics.json
+reports/advanced_classification_report.csv
+reports/advanced_confusion_matrix.csv
+models/advanced_model/
+submissions/advanced_submission.csv
+```
+
+For a quick pipeline check:
+
+```bash
+pixi run train-hybrid-advanced-smoke
+```
+
+The classical baseline can be reproduced with:
+
+```bash
+pixi run train-classic
+```
+
+## Submit
+
+Submit the final hybrid file:
+
+```bash
+pixi run submit
+```
+
+Equivalent Kaggle command:
+
+```bash
+kaggle competitions submit \
+  -c ling-539-competition-2026 \
+  -f submissions/advanced_submission.csv \
+  -m "advanced DistilBERT TF-IDF LinearSVC blend"
+```
+
+## Tests
+
+```bash
+pixi run test
+```
+
+The tests cover data validation, submission shape, long-text reduction, probability normalization, blend search, and advanced metrics structure.
+
+## Notes
+
+Generated data, model checkpoints, and submission files are ignored by Git. The code can rebuild the submission from the Kaggle data files.
