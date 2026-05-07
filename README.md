@@ -65,15 +65,6 @@ Run the final hybrid method:
 ```bash
 pixi run train-hybrid-advanced
 ```
-
-The command writes:
-
-```text
-reports/advanced_metrics.json
-reports/advanced_classification_report.csv
-reports/advanced_confusion_matrix.csv
-models/advanced_model/
-submissions/advanced_submission.csv
 ```
 
 For a quick pipeline check:
@@ -112,7 +103,3 @@ pixi run test
 ```
 
 The tests cover data validation, submission shape, long-text reduction, probability normalization, blend search, and advanced metrics structure.
-
-## Notes
-
-Generated data, model checkpoints, and submission files are ignored by Git. The code can rebuild the submission from the Kaggle data files.
