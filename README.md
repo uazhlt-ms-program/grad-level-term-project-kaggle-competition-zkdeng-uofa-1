@@ -65,6 +65,16 @@ Run the final hybrid method:
 ```bash
 pixi run train-hybrid-advanced
 ```
+
+The command writes:
+
+```text
+reports/advanced_metrics.json
+reports/advanced_classification_report.csv
+reports/advanced_confusion_matrix.csv
+models/advanced_model/blend_bundle.joblib
+models/advanced_model/transformer/
+submissions/advanced_submission.csv
 ```
 
 For a quick pipeline check:
@@ -77,6 +87,17 @@ The classical baseline can be reproduced with:
 
 ```bash
 pixi run train-classic
+```
+
+The command writes:
+
+```text
+reports/model_results.csv
+reports/confusion_matrix.csv
+reports/classification_report.csv
+reports/selected_metrics.json
+models/final_model.joblib
+submissions/submission.csv
 ```
 
 ## Submit
